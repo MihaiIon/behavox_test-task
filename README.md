@@ -161,7 +161,7 @@ In **HBase** we have **Region Server**s (slaves), **HMaster**s (masters) and **Z
 
 There are a multitude of differences between a **RS** (**Region Server**) and a **NodeData**.
 
-![region-server](./ressources/region-server.png)
+![region-server](./ressources/region-server_1.png)
 
 As you can see in the above image, the **RS** isn't a simple **DataNode**. It has the responsability of managing different **regions** on a single **DataNode**.
 
@@ -227,7 +227,7 @@ From the information above, there is clearly a problem in the _waiting_ method o
 
 Here is an image that depicts the problem :
 
-![Bug](./ressources/bug.png)
+![Bug](./ressources/bug_1.png)
 
 > **_Mihai's thoughts_**
 >

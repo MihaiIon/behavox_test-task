@@ -36,6 +36,7 @@ Here is a list of subject that I am familiar with _(prior to this task and relat
 - [NoSQL](#nosql)
 - [HBase](#hbase)
 - [JIRA Bug](#jira-bug)
+- [Kibana](#kibana)
 
 # HDFS
 
@@ -242,3 +243,11 @@ Looking at the rest of the comments thread, I see that the suggested solution is
 This way, the next **HMaster** will be able to take over and **HM1** will _abort_.
 
 # Kibana
+
+I wasn't able to complete this part as I didn't understand what the task asked to do. I had the following problems :
+
+- The [following link](https://demo.elastic.co) brings me to the front page of Kibana. I can't find the correct **_'demo cluster'_** to execute the correct requests.
+- I don't understand what **_'filebeat-\* index'_** stands for or where I should find it.
+- I assume I have to formulate some sort of queries to **_count all unique host names_**, but I am not able to find the correct location (based on the information in the test task) to do so. Maybe my assumption is wrong.
+
+I'm confident I could complete this section if I had more details on how to proceed. But as time is an issue here, I concentrated my efforts on learning **HBase** and analysing the **JIRA Bug**.

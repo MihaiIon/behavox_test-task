@@ -66,7 +66,7 @@ This artichecture is in fact a simple _master-slaves_ setup.
 
 Here is an example I found on the internet that illustrates a more _in-depth_ overview.
 
-![HDFS Architecture](https://www.guru99.com/images/Big_Data/061114_0923_LearnHDFSAB2.png)
+![HDFS Architecture](./ressources/hdfs.png)
 
 > **_Mihai's thoughts_**
 >
@@ -149,30 +149,96 @@ Let's take a look at how those things are done.
 
 We saw that in the **HDFS** architecture we had a **NodeName** (master) and some **DataNode**s (slaves).
 
-We have a similar architecture here, but there are more components as **HBase**'s scope is different than a simple data storage system.
+We have a similar architecture here, but there are more components as **HBase**'s scope is different from a simple data storage system.
 
 In **HBase** we have **Region Server**s (slaves), **HMaster**s (masters) and **Zookeeper**s (_higher masters_ if I can say so).
 
 > **_Mihai's thoughts_**
 >
-> Keep in mind that this is a simple overview so I can acquire the knowledge to approach the **JIRA Bug** report.
+> Keep in mind that this is a simple overview so I can acquire the knowledge to approach the **JIRA Bug**.
 
 ## HBase | Region Server
 
+There are a multitude of differences between a **RS** (**Region Server**) and a **NodeData**.
+
+![region-server](./ressources/region-server.png)
+
+As you can see in the above image, the **RS** isn't a simple **DataNode**. It has the responsability of managing different **regions** on a single **DataNode**.
+
+Also, if the **client** wishes to, the **RS** can be accessed direclty to execute commands.
+
+> **_Mihai's thoughts_**
+>
+> We won't go to deep into **regions**, because they are not necessary to understand the **JIRA Bug**.
+
 ## HBase | HMaster
 
+There are multiple **HMaster**s available in a **HBase** architecture, but only one is active at a time. That active **HMaster** is often referred to as the **ZNode**.
 
-znode = master
+The **HMaster** is responsible for performing administrative fonctionalities such as :
+
+- Table creation
+- Table deletion
+- Handeling the **regions** splitting.
+
+Given the fact that there are multiple **HMaster**s, there has to be a higher entity that keeps track and orchestrates the whole thing. This entity is called **Zookeeper**.
 
 ## HBase | ZooKeeper
 
+Truth to be told, this component is the **brains** of a **HBase** architecture. It has to tend to important tasks such as :
+
+- Which node is the **HMaster**.
+- What tasks are assigned to which workers.
+- Which workers are currently available.
+- Which **HMaster** should take over.
+- Etc.
+
+This gets a little more complex, because there are usually multiple **Zookeeper**s in case of a hardware failure. This scenario will not be covered here.
+
+> **_Mihai's thoughts_**
+>
+> Without getting to much into details, I have now enough knowledge to tackle the **JIRA Bug**.
 
 # JIRA Bug
 
 In this section, we'll be looking at [the bug presented in the test task](https://issues.apache.org/jira/browse/HBASE-14498). I will try to deconstruct the problem into smaller pieces and attempt to interact with it.
 
-## JIRA Bug | Basics
+## JIRA Bug | Issue Overview
 
-## JIRA Bug | In my words
+Before looking at my interpretation of the problem, I'll try to extract as many informations as I can from the initial entry of the **Bug**.
 
-## JIRA Bug | Root of the bug
+From what I can understand :
+
+- The priority is set to **Blocker**. This means that this issue hinders the proper functioning of the system.
+- This is a _high priority_ issue.
+- The active **HMaster** is stuck in an infinite loop, because it can't reach any **Zookeeper**.
+- The **Zookeeper**s seems to be unreachable.
+- The **Region Server**s may continu working (or not) even if the active **HMaster** is gone into an infinite loop.
+- This **Bug** occured in a _high-availability_ cluster (HA cluster) in production environment. _This is bad_.
+- The **Zookeeper**s went missing because of a _Network breakdown_.
+- The active **HMaster** (infinite loop) is waiting for a _session timeout_ from a **Zookeeper**, but it doesn't get one because they are all unreachable. This is causing the looping.
+- While the active **HMaster** (HM1) is waiting, a second **HMaster** (HM2) registers as an active **HMaster**. This doesn't work, because the **Region Server**s won't report to **HM2** unless **HM1** aborts. The end, **HM2** won't initialize as the new active **HMaster**.
+- The **Bug** is still marked as _unresolved_ and there a number of patches.
+- We are now at version 3.0.0
+
+## JIRA Bug | My interpretation
+
+From the information above, there is clearly a problem in the _waiting_ method of the **HMaster** entity. There should be a way for the active **HMaster** to independently abort.
+
+Here is an image that depicts the problem :
+
+![Bug](./ressources/bug.png)
+
+> **_Mihai's thoughts_**
+>
+> Looking at the **HBASE-14498.patch**, I see that problem is located in the **ZooKeeperWatcher** class.
+>
+> I am aware that the above image illustrates a simplified view of the problem.
+
+## JIRA Bug | Solution
+
+Looking at the rest of the comments thread, I see that the suggested solution is to add a **Thread** that will _abort the active_ **HMaster** if there isn't a response from any **Zookeeper**.
+
+This way, the next **HMaster** will be able to take over and **HM1** will _abort_.
+
+# Kibana
